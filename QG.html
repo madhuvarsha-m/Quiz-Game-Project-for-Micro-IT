@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Game</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pirata+One&display=swap');
+
+    body {
+      margin: 0;
+      background-color: #6a0dad;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+    }
+
+    /* Application name */
+    .title {
+      font-family: 'Pirata One', cursive;
+      font-weight: bold;
+      font-size: 50px;
+      color: black;
+      margin-bottom: 20px;
+      user-select: none;
+    }
+
+    /* Play button */
+    .play-btn {
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      padding: 12px 28px;
+      font-size: 1.4em;
+      color: white;
+      cursor: pointer;
+      margin-bottom: 30px;
+      transition: background-color 0.3s;
+      user-select: none;
+    }
+    .play-btn:hover,
+    .play-btn:focus {
+      background-color: #0056b3;
+      outline: none;
+    }
+
+    /* Topic selection container */
+    #topic-selection {
+      max-width: 400px;
+      margin-bottom: 30px;
+    }
+    #topic-selection.hidden {
+      display: none;
+    }
+    #topic-selection h2 {
+      margin-bottom: 15px;
+      font-size: 1.8em;
+      color: white;
+      user-select: none;
+    }
+    .topic-btn {
+      display: block;
+      background-color: #8a2be2;
+      border-radius: 8px;
+      padding: 12px 20px;
+      margin: 10px 0;
+      font-size: 1.2em;
+      cursor: pointer;
+      border: 2px solid #4b0082;
+      color: white;
+      transition: background-color 0.3s;
+      user-select: none;
+    }
+    .topic-btn:hover,
+    .topic-btn:focus {
+      background-color: #7a1fb0;
+      outline: none;
+    }
+
+    /* Quiz container */
+    #quiz {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(0,0,0,0.25);
+      border-radius: 15px;
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #quiz.visible {
+      display: flex;
+    }
+
+    /* Question box */
+    #question {
+      background-color: #4b0082;
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 1.6em;
+      margin-bottom: 25px;
+      user-select: none;
+    }
+
+    /* Options list */
+    #options {
+      list-style: none;
+      padding: 0;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    #options li {
+      background-color: #8a2be2;
+      border-radius: 8px;
+      padding: 15px;
+      margin: 10px 0;
+      cursor: pointer;
+      border: 2px solid #4b0082;
+      font-size: 1.3em;
+      user-select: none;
+      transition: background-color 0.3s;
+    }
+
+    #options li:hover,
+    #options li:focus {
+      background-color: #7a1fb0;
+      outline: none;
+    }
+
+    /* Correct and incorrect answer styles */
+    #options li.correct {
+      background-color: #28a745 !important; /* green */
+      border-color: #19692c;
+      cursor: default;
+    }
+
+    #options li.incorrect {
+      background-color: #dc3545 !important; /* red */
+      border-color: #7b1e1e;
+      cursor: default;
+    }
+
+    /* Result text */
+    #result {
+      margin-top: 20px;
+      font-size: 1.4em;
+      min-height: 30px;
+      user-select: none;
+    }
+
+    /* Timer and Progress */
+    #timer, #progress {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      user-select: none;
+    }
+    #timer {
+      color: #ffc107;
+      font-weight: bold;
+    }
+    #timer.warning {
+      color: #dc3545;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      #question {
+        font-size: 1.3em;
+      }
+      #options li {
+        font-size: 1.1em;
+        padding: 12px;
+      }
+      .play-btn {
+        font-size: 1.2em;
+        padding: 10px 20px;
+      }
+      #topic-selection h2 {
+        font-size: 1.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="title" aria-label="Application name">Quiz Game</div>
+
+  <button class="play-btn" id="playButton" aria-label="Start the quiz game">Play</button>
+
+  <div id="topic-selection" class="hidden" role="region" aria-labelledby="topic-title">
+    <h2 id="topic-title">Choose the Topic</h2>
+    <button class="topic-btn" data-topic="food" tabindex="0">Food Questions</button>
+    <button class="topic-btn" data-topic="body" tabindex="0">Human Body Questions</button>
+    <button class="topic-btn" data-topic="animal" tabindex="0">Animal Questions</button>
+    <button class="topic-btn" data-topic="gk" tabindex="0">GK Questions</button>
+    <button class="topic-btn" data-topic="math" tabindex="0">Math Problems</button>
+  </div>
+
+  <div id="quiz" role="main" aria-live="polite">
+    <div id="progress" aria-label="Quiz progress"></div>
+    <div id="timer" aria-live="assertive">Time Left: 15</div>
+    <div id="question"></div>
+    <ul id="options"></ul>
+    <div id="result" aria-live="assertive"></div>
+  </div>
+
+  <script>
+    // Quiz data by topic (5 questions each)
+    const quizData = {
+      food: [
+        { q: "Which vitamin is abundant in oranges?", options: ["Vitamin A", "Vitamin C", "Vitamin D", "Vitamin B12"], answer: 1 },
+        { q: "Sushi is a cuisine originating from which country?", options: ["China", "Japan", "Korea", "Thailand"], answer: 1 },
+        { q: "What is the main ingredient in guacamole?", options: ["Tomato", "Avocado", "Potato", "Onion"], answer: 1 },
+        { q: "Which food is known as a 'superfood' for its antioxidants?", options: ["Blueberries", "Bananas", "Bread", "Rice"], answer: 0 },
+        { q: "What spice is known as the most expensive by weight?", options: ["Pepper", "Saffron", "Cinnamon", "Vanilla"], answer: 1 }
+      ],
+      body: [
+        { q: "How many bones does an adult human have?", options: ["206", "201", "196", "210"], answer: 0 },
+        { q: "What is the largest organ in the human body?", options: ["Heart", "Liver", "Skin", "Lungs"], answer: 2 },
+        { q: "Which blood cells help fight infections?", options: ["Red blood cells", "White blood cells", "Platelets", "Plasma"], answer: 1 },
+        { q: "What part of the brain controls balance?", options: ["Cerebrum", "Cerebellum", "Medulla", "Hypothalamus"], answer: 1 },
+        { q: "Which muscle is known as the calf muscle?", options: ["Biceps", "Gastrocnemius", "Triceps", "Deltoid"], answer: 1 }
+      ],
+      animal: [
+        { q: "What is the fastest land animal?", options: ["Cheetah", "Lion", "Horse", "Elephant"], answer: 0 },
+        { q: "Which animal is known as the King of the Jungle?", options: ["Tiger", "Lion", "Elephant", "Leopard"], answer: 1 },
+        { q: "What mammal lays eggs?", options: ["Bat", "Platypus", "Kangaroo", "Dolphin"], answer: 1 },
+        { q: "Which bird is a universal symbol of peace?", options: ["Eagle", "Dove", "Owl", "Crow"], answer: 1 },
+        { q: "What is a group of lions called?", options: ["Pack", "Pride", "Herd", "Flock"], answer: 1 }
+      ],
+      gk: [
+        { q: "What is the capital of Australia?", options: ["Sydney", "Melbourne", "Canberra", "Brisbane"], answer: 2 },
+        { q: "Who invented the telephone?", options: ["Nikola Tesla", "Alexander Graham Bell", "Thomas Edison", "Albert Einstein"], answer: 1 },
+        { q: "Which planet is closest to the Sun?", options: ["Venus", "Earth", "Mercury", "Mars"], answer: 2 },
+        { q: "What is the tallest mountain in the world?", options: ["K2", "Kangchenjunga", "Mount Everest", "Lhotse"], answer: 2 },
+        { q: "Which ocean is the largest?", options: ["Atlantic", "Indian", "Arctic", "Pacific"], answer: 3 }
+      ],
+      math: [
+        { q: "What is 7 x 8?", options: ["54", "56", "64", "48"], answer: 1 },
+        { q: "What is the square root of 81?", options: ["7", "8", "9", "10"], answer: 2 },
+        { q: "What is 15% of 200?", options: ["20", "25", "30", "35"], answer: 2 },
+        { q: "What is the value of Pi (approx)?", options: ["2.14", "3.14", "3.41", "4.13"], answer: 1 },
+        { q: "Solve: 12 + 15 - 5 =", options: ["22", "23", "20", "17"], answer: 1 }
+      ]
+    };
+
+    let currentTopic = null;
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timerInterval = null;
+    const timePerQuestion = 15;
+    let timeLeft = timePerQuestion;
+
+    const titleEl = document.querySelector('.title');
+    const playBtn = document.getElementById('playButton');
+    const topicSelection = document.getElementById('topic-selection');
+    const quizContainer = document.getElementById('quiz');
+    const questionEl = document.getElementById('question');
+    const optionsEl = document.getElementById('options');
+    const resultEl = document.getElementById('result');
+    const timerEl = document.getElementById('timer');
+    const progressEl = document.getElementById('progress');
+
+    // Utility: shuffle an array
+    function shuffleArray(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    playBtn.addEventListener('click', () => {
+      playBtn.style.display = 'none';
+      titleEl.style.marginBottom = '10px';
+      topicSelection.classList.remove('hidden');
+      resultEl.innerText = '';
+    });
+
+    // Handle topic selection
+    topicSelection.addEventListener('click', e => {
+      if (e.target.classList.contains('topic-btn')) {
+        currentTopic = e.target.getAttribute('data-topic');
+        startQuiz();
+      }
+    });
+
+    // Start quiz: set questions, reset indexes and score, show quiz container
+    function startQuiz() {
+      topicSelection.classList.add('hidden');
+      quizContainer.classList.add('visible');
+      score = 0;
+      currentQuestionIndex = 0;
+
+      // clone and shuffle questions & shuffle options for each question
+      questions = shuffleArray(quizData[currentTopic].map(q => {
+        const shuffledOptions = shuffleArray([...q.options]);
+        // track correct answer index after shuffle
+        const correctAnswerText = q.options[q.answer];
+        const newAnswerIndex = shuffledOptions.indexOf(correctAnswerText);
+        return {
+          q: q.q,
+          options: shuffledOptions,
+          answer: newAnswerIndex
+        };
+      }));
+
+      showQuestion();
+    }
+
+    function showQuestion() {
+      clearInterval(timerInterval);
+      timeLeft = timePerQuestion;
+      updateTimer();
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimer();
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          disableOptions();
+          showCorrectAnswer();
+          setTimeout(nextQuestion, 2000);
+        }
+      }, 1000);
+
+      const q = questions[currentQuestionIndex];
+      questionEl.innerText = q.q;
+      const optionsHtml = q.options.map((opt, i) =>
+        `<li tabindex="0" class="option" onclick="selectAnswer(${i})" onkeydown="if(event.key==='Enter'){selectAnswer(${i})}">${opt}</li>`
+      ).join('');
+      optionsEl.innerHTML = optionsHtml;
+      resultEl.innerText = '';
+      progressEl.innerText = `Question ${currentQuestionIndex + 1} / ${questions.length}`;
+    }
+
+    function updateTimer() {
+      timerEl.innerText = `Time Left: ${timeLeft}s`;
+      if (timeLeft <= 5) {
+        timerEl.classList.add('warning');
+      } else {
+        timerEl.classList.remove('warning');
+      }
+    }
+
+    function selectAnswer(selectedIndex) {
+      clearInterval(timerInterval);
+      disableOptions();
+      const q = questions[currentQuestionIndex];
+      const optionsEls = document.querySelectorAll('.option');
+
+      if (selectedIndex === q.answer) {
+        optionsEls[selectedIndex].classList.add('correct');
+        resultEl.innerText = "Correct!";
+        score++;
+      } else {
+        optionsEls[selectedIndex].classList.add('incorrect');
+        resultEl.innerText = `Wrong! Correct answer: ${q.options[q.answer]}`;
+        optionsEls[q.answer].classList.add('correct');
+      }
+
+      setTimeout(nextQuestion, 2000);
+    }
+
+    function disableOptions() {
+      document.querySelectorAll('.option').forEach(opt => {
+        opt.style.pointerEvents = 'none';
+      });
+    }
+
+    function showCorrectAnswer() {
+      const q = questions[currentQuestionIndex];
+      const optionsEls = document.querySelectorAll('.option');
+      optionsEls[q.answer].classList.add('correct');
+      resultEl.innerText = `Time's up! Correct answer: ${q.options[q.answer]}`;
+    }
+
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < questions.length) {
+        showQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    function showResult() {
+      clearInterval(timerInterval);
+      quizContainer.innerHTML = `
+        <div class="result" style="font-size:1.6em; margin-bottom: 25px; color: white;">Your score: ${score} / ${questions.length}</div>
+        <button class="play-btn" id="playAgainBtn">Play Again</button>
+      `;
+      const playAgainBtn = document.getElementById('playAgainBtn');
+      playAgainBtn.addEventListener('click', () => {
+        quizContainer.classList.remove('visible');
+        topicSelection.classList.remove('hidden');
+        // Reset quiz container innerHTML for next game
+        quizContainer.innerHTML = `
+          <div id="progress" aria-label="Quiz progress"></div>
+          <div id="timer" aria-live="assertive">Time Left: 15</div>
+          <div id="question"></div>
+          <ul id="options"></ul>
+<div id="result" aria-live="assertive"></div>
+`;
+// Re-bind references and reset event listeners
+bindQuizElements();
+});
+}
+// After resetting innerHTML, rebind elements and event handlers
+function bindQuizElements() {
+  questionEl = document.getElementById('question');
+  optionsEl = document.getElementById('options');
+  resultEl = document.getElementById('result');
+  timerEl = document.getElementById('timer');
+  progressEl = document.getElementById('progress');
+  score = 0;
+  currentQuestionIndex = 0;
+}
+</script> </body> </html>
