@@ -50,5 +50,4 @@ Colors have been chosen for readability and contrast.
 
 🧑‍💻 Author
 Madhu Varsha
-Your GitHub
-Your LinkedIn (optional)
+https://www.linkedin.com/in/maddireddygari-madhu-varsha-0a7594348?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BegSq6Q1yRNWe%2FJjiCdr5eA%3D%3D
